@@ -120,7 +120,7 @@ class DB(object):
             return row_id
         #except MySQLdb.IntegrityError:
         except Exception, e:
-            logging.getLogger().critical('execute insert sql: %s' % e)
+            logging.getLogger().warn('execute insert sql: %s' % e)
             self.rollback()
         finally:
             cursor and cursor.close()
@@ -136,7 +136,7 @@ class DB(object):
             return row_count
         #except MySQLdb.OperationalError:
         except OperationalError, e:
-            logging.getLogger().critical('execute insert sql: %s' % e)
+            logging.getLogger().warn('execute insert sql: %s' % e)
             self.rollback()
         finally:
             cursor and cursor.close()
@@ -169,7 +169,7 @@ class DB(object):
                 self.conn.commit()
             #except MySQLdb.OperationalError:
             except OperationalError, e:
-                logging.getLogger().critical('execute insert sql: %s' % e)
+                logging.getLogger().warn('execute insert sql: %s' % e)
                 self.conn = None
 
     def rollback(self):
@@ -178,7 +178,7 @@ class DB(object):
                 self.conn.rollback()
             #except MySQLdb.OperationalError:
             except OperationalError, e:
-               logging.getLogger().critical('execute insert sql: %s' % e)
+               logging.getLogger().warn('execute insert sql: %s' % e)
                self.conn = None
 
 
