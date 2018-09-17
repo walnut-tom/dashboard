@@ -119,7 +119,7 @@ class DB(object):
             self.commit()
             return row_id
         #except MySQLdb.IntegrityError:
-        except Exception, e:
+        except IntegrityError, e:
             logging.getLogger().warn('execute insert sql: %s' % e)
             self.rollback()
         finally:
