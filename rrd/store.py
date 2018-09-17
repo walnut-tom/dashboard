@@ -13,8 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+postgresql = False
+mysql = False
+try:
+    import MySQLdb # MySql
+    from _mysql_exceptions import Warning, Error, InterfaceError, DataError, DatabaseError, OperationalError, IntegrityError, InternalError,  NotSupportedError, ProgrammingError
+    mysql = True
+except:
+    import psycopg2 #PostgreSQL
+    from psycopg2._psycopg import (                     # noqa
+        BINARY, NUMBER, STRING, DATETIME, ROWID,
 
-import MySQLdb
+        Binary, Date, Time, Timestamp,
+        DateFromTicks, TimeFromTicks, TimestampFromTicks,
+
+        Error, Warning, DataError, DatabaseError, ProgrammingError, IntegrityError,
+        InterfaceError, InternalError, NotSupportedError, OperationalError,
+
+        _connect, apilevel, threadsafety, paramstyle,
+        __version__, __libpq_version__,
+    )
+    postgresql = True
+
+import sys
+
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
 from rrd import config
 from rrd.utils.logger import logging
 
@@ -36,14 +62,23 @@ alarm_db_cfg = {
 
 def connect_db(cfg):
     try:
-        conn = MySQLdb.connect(
-            host=cfg['DB_HOST'],
-            port=cfg['DB_PORT'],
-            user=cfg['DB_USER'],
-            passwd=cfg['DB_PASS'],
-            db=cfg['DB_NAME'],
-            use_unicode=True,
-            charset="utf8")
+        if postgresql :
+            conn = psycopg2.connect(
+                host=cfg['DB_HOST'],
+                port=cfg['DB_PORT'],
+                user=cfg['DB_USER'],
+                password=cfg['DB_PASS'],
+                database=cfg['DB_NAME'],
+                client_encoding="UTF-8")
+        if mysql :
+            conn = MySQLdb.connect(
+                host=cfg['DB_HOST'],
+                port=cfg['DB_PORT'],
+                user=cfg['DB_USER'],
+                passwd=cfg['DB_PASS'],
+                db=cfg['DB_NAME'],
+                use_unicode=True,
+                charset="utf8")
         return conn
     except Exception, e:
         logging.getLogger().critical('connect db: %s' % e)
@@ -60,12 +95,14 @@ class DB(object):
             self.conn = connect_db(self.config)
         return self.conn
 
-    def execute(self, *a, **kw):
+    def execute(self, *sql, **kw):
+        a = tuple([str(sql[0]).replace('`',''),sql[1]])
         cursor = kw.pop('cursor', None)
         try:
             cursor = cursor or self.get_conn().cursor()
             cursor.execute(*a, **kw)
-        except (AttributeError, MySQLdb.OperationalError):
+        #except (AttributeError, MySQLdb.OperationalError):
+        except (AttributeError, OperationalError):
             self.conn and self.conn.close()
             self.conn = None
             cursor = self.get_conn().cursor()
@@ -81,7 +118,9 @@ class DB(object):
             row_id = cursor.lastrowid
             self.commit()
             return row_id
-        except MySQLdb.IntegrityError:
+        #except MySQLdb.IntegrityError:
+        except Exception, e:
+            logging.getLogger().critical('execute insert sql: %s' % e)
             self.rollback()
         finally:
             cursor and cursor.close()
@@ -95,7 +134,9 @@ class DB(object):
             self.commit()
             row_count = cursor.rowcount
             return row_count
-        except MySQLdb.IntegrityError:
+        #except MySQLdb.OperationalError:
+        except OperationalError, e:
+            logging.getLogger().critical('execute insert sql: %s' % e)
             self.rollback()
         finally:
             cursor and cursor.close()
@@ -126,15 +167,19 @@ class DB(object):
         if self.conn:
             try:
                 self.conn.commit()
-            except MySQLdb.OperationalError:
+            #except MySQLdb.OperationalError:
+            except OperationalError, e:
+                logging.getLogger().critical('execute insert sql: %s' % e)
                 self.conn = None
 
     def rollback(self):
         if self.conn:
             try:
                 self.conn.rollback()
-            except MySQLdb.OperationalError:
-                self.conn = None
+            #except MySQLdb.OperationalError:
+            except OperationalError, e:
+               logging.getLogger().critical('execute insert sql: %s' % e)
+               self.conn = None
 
 
 db = DB(portal_db_cfg)

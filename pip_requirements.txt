@@ -6,4 +6,5 @@ gunicorn==19.9.0
 python-dateutil==2.2
 requests==2.3.0
 mysql-python
+psycopg2-binary
 python-ldap
