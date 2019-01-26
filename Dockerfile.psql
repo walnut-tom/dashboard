@@ -3,9 +3,9 @@ USER root
 ENV prefix=/open-falcon
 ENV workdir=$prefix/dashboard
 
-RUN apk add --no-cache \
+RUN apk update && apk add --no-cache \
     ca-certificates bash git g++ perl make \
-    py-mysqldb \
+    py-psycopg2 \
     py-pyldap
 
 RUN mkdir -p $prefix
@@ -20,6 +20,6 @@ RUN pip install \
     Werkzeug==0.9.4 \
     gunicorn==19.9.0 \
     python-dateutil==2.2 \
-    requests==2.3.0
+    requests==2.3.0 
 
 ENTRYPOINT ["/bin/sh", "-c"]
